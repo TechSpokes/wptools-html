@@ -1,0 +1,31 @@
+{
+  "name": "techspokes/wptools-html",
+  "description": "A simple PHP library for building HTML in WordPress.",
+  "type": "library",
+  "license": "GPL-3.0-or-later",
+  "authors": [
+    {
+      "name": "TechSpokes",
+      "email": "contact@techspokes.com",
+      "homepage": "https://www.techspokes.com"
+    }
+  ],
+  "require": {
+    "php": ">=8.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "TechSpokes\\WPTools\\HTML\\": "src/"
+    }
+  },
+  "keywords": [
+    "wordpress",
+    "html",
+    "builder",
+    "library"
+  ],
+  "support": {
+    "issues": "https://github.com/TechSpokes/wptools-html/issues",
+    "source": "https://github.com/TechSpokes/wptools-html"
+  }
+}
