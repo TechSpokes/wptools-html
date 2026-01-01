@@ -650,6 +650,18 @@ final class HTML extends Tag {
 	}
 
 	/**
+	 * Generates an `<option>` tag.
+	 *
+	 * @param string|null $content The content inside the `<option>` tag.
+	 * @param array $attributes Associative array of attributes for the `<option>` tag.
+	 *
+	 * @return string The generated `<option>` tag as a string.
+	 */
+	public static function option( ?string $content, array $attributes = [] ): string {
+		return self::tag( 'option', $content, $attributes );
+	}
+
+	/**
 	 * Generates an `<output>` tag.
 	 *
 	 * @param string|null $content The content inside the `<output>` tag.

@@ -17,28 +17,25 @@ trait Attributes {
 	 *
 	 * @return string Formatted string of HTML attributes.
 	 */
-	protected static function sprint_attributes( array $attributes ): string {
+	protected static function sprint_attributes( array $attributes = [] ): string {
+		if ( 0 === count( $attributes ) ) {
+			return '';
+		}
+
 		$attr = '';
+
+		// Skip sanitization if marked as already sanitized.
+		if ( empty( $attributes[ Sanitizer::SANITIZED_KEY ] ) ) {
+			// Sanitize the attributes array keys and values.
+			$attributes = Sanitizer::sanitize_html_attributes_array( $attributes, __METHOD__ );
+		}
+
+		// Remove the marker key to avoid outputting it.
+		unset( $attributes[ Sanitizer::SANITIZED_KEY ] );
+
+		// Build the attribute string.
 		foreach ( $attributes as $key => $value ) {
-			// skip null values
-			if ( is_null( $value ) ) {
-				continue;
-			}
-			// make sure value is scalar or skip it with a warning
-			if ( ! is_scalar( $value ) ) {
-				_doing_it_wrong(
-					__METHOD__,
-					sprintf(
-						'Attribute "%s" has non-scalar value of type "%s", skipping.',
-						$key,
-						gettype( $value )
-					),
-					'1.0.0'
-				);
-				continue;
-			}
-			$value = (string) $value;
-			$attr  .= sprintf( ' %s="%s"', esc_attr( $key ), esc_attr( $value ) );
+			$attr .= sprintf( ' %s="%s"', esc_attr( $key ), esc_attr( $value ) );
 		}
 
 		return $attr;

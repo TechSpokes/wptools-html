@@ -3,7 +3,7 @@
 namespace TechSpokes\WPTools\HTML;
 
 use TechSpokes\WPTools\HTML\Utils\Attributes;
-use Throwable;
+use TechSpokes\WPTools\HTML\Utils\Sanitizer;
 
 /**
  * Abstract base class for generating HTML tags with attributes and content.
@@ -39,31 +39,15 @@ abstract class Tag {
 				self::sprint_attributes( $attributes )
 			);
 		}
-		if ( ! is_null( $content ) && ! is_scalar( $content ) ) {
-			_doing_it_wrong(
-				__METHOD__,
-				sprintf(
-					'Content for tag "%s" has non-scalar value of type "%s", converting to string.',
-					$tag,
-					gettype( $content )
-				),
-				'1.0.0'
-			);
-		}
-		try {
-			$content = (string) $content;
-		} catch ( Throwable $e ) {
-			$content = '';
-			_doing_it_wrong(
-				__METHOD__,
-				sprintf(
-					'Content for tag "%s" could not be converted to string: %s',
-					$tag,
-					$e->getMessage()
-				),
-				'1.0.0'
-			);
-		}
+
+		// Convert content to string, defaulting to empty string if fails.
+		$content = Sanitizer::to_string(
+			$content,
+			__METHOD__,
+			$tag,
+			'Content for HTML tag <%s> of type "%s" could not be converted to string: %s. Using empty string as default.',
+			''
+		);
 
 		return sprintf(
 			'<%1$s%2$s>%3$s</%1$s>',
