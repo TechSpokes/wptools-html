@@ -330,6 +330,18 @@ final class HTML extends Tag {
 	}
 
 	/**
+	 * Generates a `<div>` tag.
+	 *
+	 * @param string|null $content The content inside the `<div>` tag.
+	 * @param array $attributes Associative array of attributes for the `<div>` tag.
+	 *
+	 * @return string The generated `<div>` tag as a string.
+	 */
+	public static function div( ?string $content = null, array $attributes = [] ): string {
+		return self::tag( 'div', $content, $attributes );
+	}
+
+	/**
 	 * Generates a `<figcaption>` tag.
 	 *
 	 * @param string|null $content The content inside the `<figcaption>` tag.
