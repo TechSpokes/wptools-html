@@ -244,6 +244,28 @@ final class Sanitizer {
 	}
 
 	/**
+	 * Sanitize the "type" attribute for an HTML <input> element.
+	 *
+	 * @param array $attributes The associative array of HTML attributes.
+	 * @param string $method The method name for warning context.
+	 *
+	 * @return string The sanitized "type" attribute value (sort of validated, keep users awake lol).
+	 */
+	public static function sanitize_input_html_attribute_type( array $attributes, string $method ): string {
+		// Make sure we have type, default to text with warning.
+		if ( Sanitizer::is_empty_or_not_string( $attributes['type'] ?? null ) ) {
+			Warning::doing_it_wrong(
+				$method,
+				'HTML <input> attribute "type" is missing or empty, defaulting to "text".'
+			);
+			$attributes['type'] = 'text';
+		}
+
+		// Cast type to lowercase string (it is a string from the check before) and return it.
+		return strtolower( $attributes['type'] );
+	}
+
+	/**
 	 * Sanitize current values for form controls.
 	 *
 	 * @param mixed|null $current The current value(s) to sanitize.

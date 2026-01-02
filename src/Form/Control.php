@@ -92,17 +92,7 @@ final class Control {
 		$attributes = Sanitizer::sanitize_html_attributes_array( $attributes, __METHOD__ );
 
 		// Make sure we have type, default to text with warning.
-		if ( Sanitizer::is_empty_or_not_string( $attributes['type'] ?? null ) ) {
-			Warning::doing_it_wrong(
-				__METHOD__,
-				'HTML <input> attribute "type" is missing or empty, defaulting to "text".'
-			);
-			$attributes['type'] = 'text';
-		}
-		// Cast type to lowercase string (it is a string from the check before).
-		$attributes['type'] = strtolower( $attributes['type'] );
-		// Safe to use now.
-		$type = $attributes['type'];
+		$type = Sanitizer::sanitize_input_html_attribute_type( $attributes, __METHOD__ );
 
 		// Normalize the current value to an array of strings. Can potentially contain empty strings.
 		$current = Sanitizer::sanitize_current_values(

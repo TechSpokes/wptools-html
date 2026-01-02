@@ -544,6 +544,18 @@ final class HTML extends Tag {
 	}
 
 	/**
+	 * Generates a `<label>` tag.
+	 *
+	 * @param string|null $content The content inside the `<label>` tag.
+	 * @param array $attributes Associative array of attributes for the `<label>` tag.
+	 *
+	 * @return string The generated `<label>` tag as a string.
+	 */
+	public static function label( ?string $content = null, array $attributes = [] ): string {
+		return self::tag( 'label', $content, $attributes );
+	}
+
+	/**
 	 * Generates a `<legend>` tag.
 	 *
 	 * @param string|null $content The content inside the `<legend>` tag.
@@ -683,6 +695,18 @@ final class HTML extends Tag {
 	 */
 	public static function output( ?string $content = null, array $attributes = [] ): string {
 		return self::tag( 'output', $content, $attributes );
+	}
+
+	/**
+	 * Generates a `<p>` tag.
+	 *
+	 * @param string|null $content The content inside the `<p>` tag.
+	 * @param array $attributes Associative array of attributes for the `<p>` tag.
+	 *
+	 * @return string The generated `<p>` tag as a string.
+	 */
+	public static function p( ?string $content = null, array $attributes = [] ): string {
+		return self::tag( 'p', $content, $attributes );
 	}
 
 	/**
