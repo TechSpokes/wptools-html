@@ -27,7 +27,7 @@ final class Sanitizer {
 	 * @return string|null The converted string. Return the default value provided or null if conversion fails.
 	 * @noinspection PhpUnusedParameterInspection
 	 */
-	public static function to_string(
+	public static function to_string_or_default(
 		mixed $value,
 		string $method,
 		string $key,
@@ -66,7 +66,7 @@ final class Sanitizer {
 		$result = [];
 		foreach ( $values as $key => $value ) {
 			$default = $defaults[ $key ] ?? null;
-			$result[ $key ] = self::to_string( $value, $method, (string) $key, $message_template, $default );
+			$result[ $key ] = self::to_string_or_default( $value, $method, (string) $key, $message_template, $default );
 		}
 
 		return $result;
@@ -241,5 +241,40 @@ final class Sanitizer {
 		}
 
 		return $attributes;
+	}
+
+	/**
+	 * Sanitize current values for form controls.
+	 *
+	 * @param mixed|null $current The current value(s) to sanitize.
+	 * @param string $method The method name for warning context.
+	 * @param string $message_template The message template for warnings. Must have three %s placeholders: one for index, one for type, one for error message.
+	 *
+	 * @return array<int,string> The sanitized array of current values. Note: can contain empty strings.
+	 */
+	public static function sanitize_current_values( mixed $current, string $method, string $message_template ): array {
+		// Normalize the current value to an array of values if provided.
+		if ( null === $current ) {
+			// Nothing to do, return empty array.
+			return [];
+		} elseif ( ! is_array( $current ) ) {
+			$current = [ $current ];
+		}
+		if ( 0 < count( $current ) ) {
+			// Mar current values to strings with null as default.
+			$current = Sanitizer::map_to_strings(
+				$current,
+				$method,
+				$message_template
+			);
+			// Remove null values.
+			$current = Sanitizer::remove_null_values_from_array( $current );
+		} else {
+			// No values after normalization, return empty array.
+			return [];
+		}
+
+		// Return re-indexed array of current values.
+		return ( 0 < count( $current ) ) ? array_values( array_unique( $current ) ) : [];
 	}
 }

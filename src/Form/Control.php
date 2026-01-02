@@ -15,317 +15,232 @@ use TechSpokes\WPTools\HTML\Utils\Warning;
 final class Control {
 
 	/**
-	 * Generates an `<input type="text" />` form control.
+	 * Generates a `<textarea>` form control.
 	 *
-	 * @param array $attributes Associative array of attributes for the input element.
+	 * Validation:
+	 * - Warns if a `value` attribute is provided, as it is not used on `<textarea>`.
+	 * - If `value` is provided but current value/content is null, it uses the `value` content as the textarea content with a warning.
 	 *
-	 * @return string The generated input HTML element as a string.
+	 * @param array $attributes Associative array of attributes for the textarea element.
+	 * @param string|null $current The current value/content of the textarea.
+	 *
+	 * @return string The generated textarea HTML element as a string.
 	 */
-	public static function input_text( array $attributes = [] ): string {
-		$attributes['type'] = 'text';
+	public static function textarea( array $attributes = [], ?string $current = null ): string {
+		// Sanitize attributes array.
+		$attributes = Sanitizer::sanitize_html_attributes_array( $attributes, __METHOD__ );
 
-		return self::input( $attributes );
-	}
+		// If caller passed a "value" attribute, it's not used on <textarea>.
+		if ( array_key_exists( 'value', $attributes ) ) {
+			// If current value is null and "value" attribute is non-empty, use it as content with warning.
+			if ( ( null === $current ) && Sanitizer::is_not_empty_string( $attributes['value'] ) ) {
+				Warning::doing_it_wrong(
+					__METHOD__,
+					'HTML tag <textarea> has a "value" attribute but no content. Replacing content with the "value" attribute content.'
+				);
+				// Use the value attribute as content, default to null if conversion fails.
+				$current = Sanitizer::to_string_or_default(
+					$attributes['value'],
+					__METHOD__,
+					'textarea',
+					'Content for HTML tag <%s> of type "%s" could not be converted to string: %s. Using null as default.'
+				);
+			} else {
+				Warning::doing_it_wrong(
+					__METHOD__,
+					'HTML tag <textarea> does not support a "value" attribute. Removing "value" attribute.'
+				);
+			}
 
-	/**
-	 * Generates an `<input type="email" />` form control.
-	 *
-	 * @param array $attributes Associative array of attributes for the input element.
-	 *
-	 * @return string The generated input HTML element as a string.
-	 */
-	public static function input_email( array $attributes = [] ): string {
-		$attributes['type'] = 'email';
-
-		return self::input( $attributes );
-	}
-
-	/**
-	 * Generates an `<input type="url" />` form control.
-	 *
-	 * @param array $attributes Associative array of attributes for the input element.
-	 *
-	 * @return string The generated input HTML element as a string.
-	 */
-	public static function input_url( array $attributes = [] ): string {
-		$attributes['type'] = 'url';
-
-		return self::input( $attributes );
-	}
-
-	/**
-	 * Generates an `<input type="tel" />` form control.
-	 *
-	 * @param array $attributes Associative array of attributes for the input element.
-	 *
-	 * @return string The generated input HTML element as a string.
-	 */
-	public static function input_tel( array $attributes = [] ): string {
-		$attributes['type'] = 'tel';
-
-		return self::input( $attributes );
-	}
-
-	/**
-	 * Generates an `<input type="search" />` form control.
-	 *
-	 * @param array $attributes Associative array of attributes for the input element.
-	 *
-	 * @return string The generated input HTML element as a string.
-	 */
-	public static function input_search( array $attributes = [] ): string {
-		$attributes['type'] = 'search';
-
-		return self::input( $attributes );
-	}
-
-	/**
-	 * Generates an `<input type="password" />` form control.
-	 *
-	 * Note: Setting a preset value for password inputs is discouraged for security reasons.
-	 *
-	 * @param array $attributes Associative array of attributes for the input element.
-	 *
-	 * @return string The generated input HTML element as a string.
-	 */
-	public static function input_password( array $attributes = [] ): string {
-		$attributes['type'] = 'password';
-		if ( isset( $attributes['value'] ) ) {
-			Warning::doing_it_wrong(
-				__METHOD__,
-				'Setting a preset value for input type "password" is not recommended for security reasons. Try to avoid it if possible.'
-			);
-		}
-
-		return self::input( $attributes );
-	}
-
-	/**
-	 * Generates an `<input type="image" />` form control.
-	 *
-	 * @param array $attributes Associative array of attributes for the input element.
-	 *
-	 * @return string The generated input HTML element as a string.
-	 */
-	public static function input_image( array $attributes = [] ): string {
-		$attributes['type'] = 'image';
-
-		return self::input( $attributes );
-	}
-
-	/**
-	 * Generates an `<input type="file" />` form control.
-	 *
-	 * Note: The `value` attribute is removed if provided, as browsers ignore it for security reasons.
-	 *
-	 * @param array $attributes Associative array of attributes for the input element.
-	 *
-	 * @return string The generated input HTML element as a string.
-	 */
-	public static function input_file( array $attributes = [] ): string {
-		$attributes['type'] = 'file';
-		if ( isset( $attributes['value'] ) ) {
-			Warning::doing_it_wrong(
-				__METHOD__,
-				'Input type "file" cannot have a preset value; browsers ignore it for security reasons. Removing "value" attribute.'
-			);
+			// Unset the value attribute as it's not valid for textarea.
 			unset( $attributes['value'] );
 		}
 
-		return self::input( $attributes );
+		// Normalize content to string, defaulting to null (default behavior) if the conversion fails.
+		$current = Sanitizer::to_string_or_default(
+			$current,
+			__METHOD__,
+			'textarea',
+			'Content for HTML tag <%s> of type "%s" could not be converted to string: %s. Using null as default.'
+		);
+
+		return HTML::textarea( $current, $attributes );
 	}
 
+
 	/**
-	 * Generates an `<input type="number" />` form control.
+	 * Generates an `<input />` form control.
+	 *
+	 * Defaults and validation:
+	 * - If the `type` attribute is missing/empty, it defaults to `'text'` and triggers a `_doing_it_wrong()` notice.
+	 * - If `value` is present and is a non-scalar, it is coerced to a string (or `''` if string-casting fails), with a notice.
+	 *
+	 * Type-specific notes:
+	 * - `checkbox` / `radio`: warns when `value` is omitted (browsers submit `'on'` when checked).
+	 * - `submit` / `button` / `reset`: warns when `value` is missing or empty, since it typically defines the label/value.
+	 *
+	 * Cleanup:
+	 * - Removes `value=""` for input types where an empty value is redundant/ignored.
 	 *
 	 * @param array $attributes Associative array of attributes for the input element.
+	 * @param mixed|null $current The current value for the input element.
 	 *
 	 * @return string The generated input HTML element as a string.
 	 */
-	public static function input_number( array $attributes = [] ): string {
-		$attributes['type'] = 'number';
+	public static function input( array $attributes = [], mixed $current = null ): string {
+		// Sanitize attributes array (convert values to strings, remove nulls, non-string keys).
+		$attributes = Sanitizer::sanitize_html_attributes_array( $attributes, __METHOD__ );
 
-		return self::input( $attributes );
+		// Make sure we have type, default to text with warning.
+		if ( Sanitizer::is_empty_or_not_string( $attributes['type'] ?? null ) ) {
+			Warning::doing_it_wrong(
+				__METHOD__,
+				'HTML <input> attribute "type" is missing or empty, defaulting to "text".'
+			);
+			$attributes['type'] = 'text';
+		}
+		// Cast type to lowercase string (it is a string from the check before).
+		$attributes['type'] = strtolower( $attributes['type'] );
+		// Safe to use now.
+		$type = $attributes['type'];
+
+		// Normalize the current value to an array of strings. Can potentially contain empty strings.
+		$current = Sanitizer::sanitize_current_values(
+			$current,
+			__METHOD__,
+			'Current <input> value (index: "%s") of type "%s" could not be converted to string: %s. Skipping this value.'
+		);
+
+		// Remove empty current values and reindex the array.
+		$current = array_values( array_filter( $current, [ Sanitizer::class, 'is_not_empty_string' ] ) );
+
+		// Do we have current values?
+		$has_current = ( 0 < count( $current ) );
+
+		// Do we have a value attribute?
+		$has_value      = array_key_exists( 'value', $attributes );
+		$value          = $has_value ? $attributes['value'] : null;
+		$value_is_empty = Sanitizer::is_empty_or_not_string( $value );
+
+		// Type-specific handling and warnings.
+		switch ( $type ) {
+			case 'checkbox':
+			case 'radio':
+				// Warn if checkbox/radio are missing "value" (browser defaults to "on" when checked).
+				if ( ! $has_value ) {
+					Warning::doing_it_wrong(
+						__METHOD__,
+						'HTML <input> type "%s" missing "value" attribute. If omitted, browsers submit "on" when checked. Provide "value" attribute explicitly if you need a different submitted value.',
+						$type
+					);
+				}
+				// Handle the "checked" attribute based on current values if not already set.
+				if ( $has_current && ! array_key_exists( 'checked', $attributes ) ) {
+					if ( $has_value ) {
+						if ( in_array( (string) $value, $current, true ) ) {
+							$attributes['checked'] = 'checked';
+						}
+					} else {
+						// No value attribute, browser defaults to "on".
+						if ( in_array( 'on', $current, true ) ) {
+							$attributes['checked'] = 'checked';
+						}
+					}
+				}
+				break;
+
+			case 'submit':
+			case 'button':
+			case 'reset':
+				// Warn if button-like types are missing/empty "value" (defines label/value explicitly).
+				if ( ! $has_value ) {
+					Warning::doing_it_wrong(
+						__METHOD__,
+						'HTML <input> type "%s" missing "value" attribute. Consider providing it to define the button label/value explicitly.',
+						$type
+					);
+				} elseif ( $value_is_empty ) {
+					Warning::doing_it_wrong(
+						__METHOD__,
+						'HTML <input> type "%s" has empty "value" attribute. Consider providing a non-empty "value" attribute to define the button label/value explicitly.',
+						$type
+					);
+				}
+				// if current is provided, but value is empty, set value to first current.
+				if ( $value_is_empty && $has_current ) {
+					$attributes['value'] = $current[0];
+				}
+				break;
+
+			case 'file':
+				// Warn if file input has a preset value (browsers ignore it for security reasons).
+				if ( $has_value ) {
+					Warning::doing_it_wrong(
+						__METHOD__,
+						'Input type "file" cannot have a preset value; browsers ignore it for security reasons. Removing "value" attribute.'
+					);
+					unset( $attributes['value'] );
+				}
+				break;
+
+			case 'password':
+				// Warn if password input has a preset value (not recommended for security reasons).
+				if ( $has_value ) {
+					Warning::doing_it_wrong(
+						__METHOD__,
+						'Setting a preset value for input type "password" is not recommended for security reasons. Try to avoid it if possible.'
+					);
+				}
+				break;
+
+			default:
+				// For other types, if value is empty and current is provided, set value to first current.
+				if ( $value_is_empty && $has_current ) {
+					$attributes['value'] = $current[0];
+				}
+				break;
+		}
+
+		// Do we still have a value attribute?
+		$has_value      = array_key_exists( 'value', $attributes );
+		$value          = $has_value ? $attributes['value'] : null;
+		$value_is_empty = Sanitizer::is_empty_or_not_string( $value );
+
+		/**
+		 * Drop empty value="" only where it is redundant/ignored.
+		 * IMPORTANT: do NOT drop for hidden/checkbox/radio/buttons/image.
+		 */
+		$drop_empty_value = [
+			'text',
+			'email',
+			'password',
+			'search',
+			'url',
+			'tel',
+			'number',
+			'range',
+			'date',
+			'time',
+			'datetime-local',
+			'month',
+			'week',
+			'color',
+		];
+
+		if ( $has_value && $value_is_empty && in_array( $type, $drop_empty_value, true ) ) {
+			Warning::doing_it_wrong(
+				__METHOD__,
+				'HTML <input> type "%s" has an empty "value" attribute which is redundant/ignored here. Removing "value" attribute.',
+				$type
+			);
+
+			// Unset the value attribute.
+			unset( $attributes['value'] );
+		}
+
+		return HTML::input( $attributes );
 	}
 
-	/**
-	 * Generates an `<input type="range" />` form control.
-	 *
-	 * @param array $attributes Associative array of attributes for the input element.
-	 *
-	 * @return string The generated input HTML element as a string.
-	 */
-	public static function input_range( array $attributes = [] ): string {
-		$attributes['type'] = 'range';
-
-		return self::input( $attributes );
-	}
-
-	/**
-	 * Generates an `<input type="date" />` form control.
-	 *
-	 * @param array $attributes Associative array of attributes for the input element.
-	 *
-	 * @return string The generated input HTML element as a string.
-	 */
-	public static function input_date( array $attributes = [] ): string {
-		$attributes['type'] = 'date';
-
-		return self::input( $attributes );
-	}
-
-	/**
-	 * Generates an `<input type="time" />` form control.
-	 *
-	 * @param array $attributes Associative array of attributes for the input element.
-	 *
-	 * @return string The generated input HTML element as a string.
-	 */
-	public static function input_time( array $attributes = [] ): string {
-		$attributes['type'] = 'time';
-
-		return self::input( $attributes );
-	}
-
-	/**
-	 * Generates an `<input type="datetime-local" />` form control.
-	 *
-	 * @param array $attributes Associative array of attributes for the input element.
-	 *
-	 * @return string The generated input HTML element as a string.
-	 */
-	public static function input_datetime_local( array $attributes = [] ): string {
-		$attributes['type'] = 'datetime-local';
-
-		return self::input( $attributes );
-	}
-
-	/**
-	 * Generates an `<input type="month" />` form control.
-	 *
-	 * @param array $attributes Associative array of attributes for the input element.
-	 *
-	 * @return string The generated input HTML element as a string.
-	 */
-	public static function input_month( array $attributes = [] ): string {
-		$attributes['type'] = 'month';
-
-		return self::input( $attributes );
-	}
-
-	/**
-	 * Generates an `<input type="week" />` form control.
-	 *
-	 * @param array $attributes Associative array of attributes for the input element.
-	 *
-	 * @return string The generated input HTML element as a string.
-	 */
-	public static function input_week( array $attributes = [] ): string {
-		$attributes['type'] = 'week';
-
-		return self::input( $attributes );
-	}
-
-	/**
-	 * Generates an `<input type="color" />` form control.
-	 *
-	 * @param array $attributes Associative array of attributes for the input element.
-	 *
-	 * @return string The generated input HTML element as a string.
-	 */
-	public static function input_color( array $attributes = [] ): string {
-		$attributes['type'] = 'color';
-
-		return self::input( $attributes );
-	}
-
-	/**
-	 * Generates an `<input type="hidden" />` form control.
-	 *
-	 * @param array $attributes Associative array of attributes for the input element.
-	 *
-	 * @return string The generated input HTML element as a string.
-	 */
-	public static function input_hidden( array $attributes = [] ): string {
-		$attributes['type'] = 'hidden';
-
-		return self::input( $attributes );
-	}
-
-	/**
-	 * Generates an `<input type="checkbox" />` form control.
-	 *
-	 * Note: If the `value` attribute is omitted, browsers submit "on" when checked.
-	 *
-	 * @param array $attributes Associative array of attributes for the input element.
-	 *
-	 * @return string The generated input HTML element as a string.
-	 */
-	public static function input_checkbox( array $attributes = [] ): string {
-		$attributes['type'] = 'checkbox';
-
-		return self::input( $attributes );
-	}
-
-	/**
-	 * Generates an `<input type="radio" />` form control.
-	 *
-	 * Note: If the `value` attribute is omitted, browsers submit "on" when checked.
-	 *
-	 * @param array $attributes Associative array of attributes for the input element.
-	 *
-	 * @return string The generated input HTML element as a string.
-	 */
-	public static function input_radio( array $attributes = [] ): string {
-		$attributes['type'] = 'radio';
-
-		return self::input( $attributes );
-	}
-
-	/**
-	 * Generates an `<input type="submit" />` form control.
-	 *
-	 * Note: The `value` attribute defines the button label/value.
-	 *
-	 * @param array $attributes Associative array of attributes for the input element.
-	 *
-	 * @return string The generated input HTML element as a string.
-	 */
-	public static function input_submit( array $attributes = [] ): string {
-		$attributes['type'] = 'submit';
-
-		return self::input( $attributes );
-	}
-
-	/**
-	 * Generates an `<input type="button" />` form control.
-	 *
-	 * Note: The `value` attribute defines the button label/value.
-	 *
-	 * @param array $attributes Associative array of attributes for the input element.
-	 *
-	 * @return string The generated input HTML element as a string.
-	 */
-	public static function input_button( array $attributes = [] ): string {
-		$attributes['type'] = 'button';
-
-		return self::input( $attributes );
-	}
-
-	/**
-	 * Generates an `<input type="reset" />` form control.
-	 *
-	 * Note: The `value` attribute defines the button label/value.
-	 *
-	 * @param array $attributes Associative array of attributes for the input element.
-	 *
-	 * @return string The generated input HTML element as a string.
-	 */
-	public static function input_reset( array $attributes = [] ): string {
-		$attributes['type'] = 'reset';
-
-		return self::input( $attributes );
-	}
 
 	/**
 	 * Generates an `<option>` element for a `<select>` dropdown.
@@ -338,13 +253,14 @@ final class Control {
 	 * @param array $attributes Associative array of attributes for the option element.
 	 *
 	 * @return string The generated option HTML element as a string.
+	 * @noinspection PhpSameParameterValueInspection
 	 */
-	public static function option( mixed $content = null, array $attributes = [] ): string {
+	private static function option( mixed $content = null, array $attributes = [] ): string {
 		// Sanitize attributes array.
 		$attributes = Sanitizer::sanitize_html_attributes_array( $attributes, __METHOD__ );
 
-		// Normalize content.
-		$content = Sanitizer::to_string(
+		// Normalize content to string, defaulting to empty string if fails.
+		$content = Sanitizer::to_string_or_default(
 			$content,
 			__METHOD__,
 			'option',
@@ -372,112 +288,5 @@ final class Control {
 		}
 
 		return HTML::option( $content, $attributes );
-	}
-
-
-	/**
-	 * Generates an `<input />` form control.
-	 *
-	 * Defaults and validation:
-	 * - If the `type` attribute is missing/empty, it defaults to `'text'` and triggers a `_doing_it_wrong()` notice.
-	 * - If `value` is present and is a non-scalar, it is coerced to a string (or `''` if string-casting fails), with a notice.
-	 *
-	 * Type-specific notes:
-	 * - `checkbox` / `radio`: warns when `value` is omitted (browsers submit `'on'` when checked).
-	 * - `submit` / `button` / `reset`: warns when `value` is missing or empty, since it typically defines the label/value.
-	 *
-	 * Cleanup:
-	 * - Removes `value=""` only for input types where an empty value is redundant/ignored.
-	 *
-	 * @param array $attributes Associative array of attributes for the input element.
-	 *
-	 * @return string The generated input HTML element as a string.
-	 */
-	private static function input( array $attributes = [] ): string {
-		// Sanitize attributes array.
-		$attributes = Sanitizer::sanitize_html_attributes_array( $attributes, __METHOD__, [ 'type' => 'text' ] );
-
-		// Make sure we have type, default to text with warning.
-		if ( Sanitizer::is_empty_or_not_string( $attributes['type'] ?? null ) ) {
-			Warning::doing_it_wrong(
-				__METHOD__,
-				'HTML <input> attribute "type" is missing or empty, defaulting to "text".'
-			);
-			$attributes['type'] = 'text';
-		}
-
-		// Safe to use now.
-		$type = $attributes['type'];
-
-		// Recompute after potential coercion.
-		$has_value             = array_key_exists( 'value', $attributes );
-		$value_is_empty_string = Sanitizer::is_empty_or_not_string( $attributes['value'] ?? null );
-
-		// Type-specific handling and warnings.
-		switch ( $type ) {
-			case 'checkbox':
-			case 'radio':
-				// Warn if checkbox/radio are missing "value" (browser defaults to "on" when checked).
-				if ( ! $has_value ) {
-					Warning::doing_it_wrong(
-						__METHOD__,
-						'HTML <input> type "%s" missing "value" attribute. If omitted, browsers submit "on" when checked. Provide "value" attribute explicitly if you need a different submitted value.',
-						$type
-					);
-				}
-				break;
-
-			case 'submit':
-			case 'button':
-			case 'reset':
-				// Warn if button-like types are missing/empty "value" (defines label/value explicitly).
-				if ( ! $has_value ) {
-					Warning::doing_it_wrong(
-						__METHOD__,
-						'HTML <input> type "%s" missing "value" attribute. Consider providing it to define the button label/value explicitly.',
-						$type
-					);
-				} elseif ( $value_is_empty_string ) {
-					Warning::doing_it_wrong(
-						__METHOD__,
-						'HTML <input> type "%s" has empty "value" attribute. Consider providing a non-empty "value" attribute to define the button label/value explicitly.',
-						$type
-					);
-				}
-				break;
-		}
-
-		/**
-		 * Drop empty value="" only where it is redundant/ignored.
-		 * IMPORTANT: do NOT drop for hidden/checkbox/radio/buttons/image.
-		 */
-		$drop_empty_value = [
-			'file',
-			'text',
-			'email',
-			'password',
-			'search',
-			'url',
-			'tel',
-			'number',
-			'range',
-			'date',
-			'time',
-			'datetime-local',
-			'month',
-			'week',
-			'color',
-		];
-
-		if ( in_array( $type, $drop_empty_value, true ) && $has_value && $value_is_empty_string ) {
-			Warning::doing_it_wrong(
-				__METHOD__,
-				'HTML <input> type "%s" has an empty "value" attribute which is redundant/ignored here. Removing "value" attribute.',
-				$type
-			);
-			unset( $attributes['value'] );
-		}
-
-		return HTML::input( $attributes );
 	}
 }

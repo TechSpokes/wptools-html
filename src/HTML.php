@@ -932,7 +932,7 @@ final class HTML extends Tag {
 	 * @return string The generated `<textarea>` tag as a string.
 	 */
 	public static function textarea( ?string $content = null, array $attributes = [] ): string {
-		return self::tag( 'textarea', esc_textarea( $content ), $attributes );
+		return self::tag( 'textarea', is_string( $content ) ? esc_textarea( $content ) : null, $attributes );
 	}
 
 	/**

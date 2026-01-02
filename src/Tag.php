@@ -41,7 +41,7 @@ abstract class Tag {
 		}
 
 		// Convert content to string, defaulting to empty string if fails.
-		$content = Sanitizer::to_string(
+		$content = Sanitizer::to_string_or_default(
 			$content,
 			__METHOD__,
 			$tag,
