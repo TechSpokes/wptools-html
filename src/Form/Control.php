@@ -33,7 +33,7 @@ final class Control {
 		// If caller passed a "value" attribute, it's not used on <textarea>.
 		if ( array_key_exists( 'value', $attributes ) ) {
 			// If current value is null and "value" attribute is non-empty, use it as content with warning.
-			if ( ( null === $current ) && Sanitizer::is_not_empty_string( $attributes['value'] ) ) {
+			if ( ( null === $current ) && Sanitizer::is_string_and_not_empty( $attributes['value'] ) ) {
 				Warning::doing_it_wrong(
 					__METHOD__,
 					'HTML tag <textarea> has a "value" attribute but no content. Replacing content with the "value" attribute content.'
@@ -102,7 +102,7 @@ final class Control {
 		);
 
 		// Remove empty current values and reindex the array.
-		$current = array_values( array_filter( $current, [ Sanitizer::class, 'is_not_empty_string' ] ) );
+		$current = array_values( array_filter( $current, [ Sanitizer::class, 'is_string_and_not_empty' ] ) );
 
 		// Do we have current values?
 		$has_current = ( 0 < count( $current ) );
@@ -110,7 +110,7 @@ final class Control {
 		// Do we have a value attribute?
 		$has_value      = array_key_exists( 'value', $attributes );
 		$value          = $has_value ? $attributes['value'] : null;
-		$value_is_empty = Sanitizer::is_empty_or_not_string( $value );
+		$value_is_empty = Sanitizer::is_not_string_or_empty( $value );
 
 		// Type-specific handling and warnings.
 		switch ( $type ) {
@@ -194,7 +194,7 @@ final class Control {
 		// Do we still have a value attribute?
 		$has_value      = array_key_exists( 'value', $attributes );
 		$value          = $has_value ? $attributes['value'] : null;
-		$value_is_empty = Sanitizer::is_empty_or_not_string( $value );
+		$value_is_empty = Sanitizer::is_not_string_or_empty( $value );
 
 		/**
 		 * Drop empty value="" only where it is redundant/ignored.
@@ -266,8 +266,8 @@ final class Control {
 			);
 		}
 
-		$has_content = Sanitizer::is_not_empty_string( $content );
-		$has_label   = Sanitizer::is_not_empty_string( $attributes['label'] ?? null );
+		$has_content = Sanitizer::is_string_and_not_empty( $content );
+		$has_label   = Sanitizer::is_string_and_not_empty( $attributes['label'] ?? null );
 
 		// Option must have a label (content or label attr).
 		if ( ! $has_content && ! $has_label ) {

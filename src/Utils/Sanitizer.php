@@ -129,7 +129,7 @@ final class Sanitizer {
 		$result = [];
 		$index  = 0;
 		foreach ( $input as $key => $value ) {
-			if ( self::is_not_empty_string( $key ) ) {
+			if ( self::is_string_and_not_empty( $key ) ) {
 				$result[ $key ] = $value;
 			} else {
 				if ( null !== $method ) {
@@ -173,7 +173,7 @@ final class Sanitizer {
 	 *
 	 * @return bool True if the value is a non-empty string, false otherwise.
 	 */
-	public static function is_not_empty_string( mixed $value ): bool {
+	public static function is_string_and_not_empty( mixed $value ): bool {
 		return is_string( $value ) && '' !== $value;
 	}
 
@@ -184,8 +184,8 @@ final class Sanitizer {
 	 *
 	 * @return bool True if the value is an empty string or not a string, false otherwise.
 	 */
-	public static function is_empty_or_not_string( mixed $value ): bool {
-		return ! self::is_not_empty_string( $value );
+	public static function is_not_string_or_empty( mixed $value ): bool {
+		return ! self::is_string_and_not_empty( $value );
 	}
 
 	/**
@@ -253,7 +253,7 @@ final class Sanitizer {
 	 */
 	public static function sanitize_input_html_attribute_type( array $attributes, string $method ): string {
 		// Make sure we have type, default to text with warning.
-		if ( Sanitizer::is_empty_or_not_string( $attributes['type'] ?? null ) ) {
+		if ( Sanitizer::is_not_string_or_empty( $attributes['type'] ?? null ) ) {
 			Warning::doing_it_wrong(
 				$method,
 				'HTML <input> attribute "type" is missing or empty, defaulting to "text".'

@@ -6,6 +6,8 @@ This package exists to make server-side HTML generation **less repetitive**, **m
 
 It’s also WP_DEBUG-friendly: when you omit attributes that are easy to forget, the library will often trigger `_doing_it_wrong()` notices so you catch issues early.
 
+This library is highly opinionated, reflecting our internal philosophy for building user interfaces in WordPress. It enforces consistent patterns, prioritizes accessibility, and encourages best practices by design. Many defaults and warnings are based on real-world issues we’ve encountered, so the API guides you toward robust, maintainable markup that aligns with our standards for clarity, safety, and usability.
+
 ## At a glance
 
 - **Primary API:** `TechSpokes\WPTools\HTML\HTML` (static helpers for HTML tags)
@@ -19,10 +21,13 @@ It’s also WP_DEBUG-friendly: when you omit attributes that are easy to forget,
 
 use TechSpokes\WPTools\HTML\HTML;
 
-echo HTML::a('Docs', [
-    'href'  => 'https://example.com/docs',
-    'class' => 'button button-primary',
-]);
+echo HTML::a(
+  'Docs',
+  [
+      'href'  => 'https://example.com/docs',
+      'class' => 'button button-primary',
+  ]
+);
 ```
 
 Build nested markup by composing strings:
@@ -52,12 +57,15 @@ Important: while the library may “do the right thing” with defaults, **WP_DE
 use TechSpokes\WPTools\HTML\Form\Control;
 
 // Recommended: pass type explicitly (omitting it defaults to "text" but triggers _doing_it_wrong() in WP_DEBUG).
-echo Control::input([
-    'type'  => 'text',
-    'id'    => 'my_option',
-    'name'  => 'my_option',
-    'class' => 'regular-text',
-], get_option('my_option'));
+echo Control::input(
+  [
+      'type'  => 'text',
+      'id'    => 'my_option',
+      'name'  => 'my_option',
+      'class' => 'regular-text',
+  ],
+  get_option('my_option')
+);
 ```
 
 A full field wrapper with label + optional description:
@@ -74,8 +82,8 @@ echo Field::input(
         'type' => 'text',
     ],
     get_option('site_tagline'),
-    'Tagline',
-    'Shown in some themes and browser titles.'
+    __('Tagline','my-text-domain'),
+    __('Shown in some themes and browser titles.','my-text-domain')
 );
 ```
 
@@ -154,9 +162,28 @@ Notable behavior:
   - a control from `Control::input()`
   - an optional description paragraph
 
+#### ID + ARIA behavior (important)
+
+`Field::input()` tries to make an accessible field automatically, but it can only do that when it can derive a stable ID base.
+
+- **ID base (`$id_base`) derivation:**
+  - If you pass an `id`, it uses that (trimmed) as the base.
+  - Otherwise, if you pass a `name`, it derives a base from it (normalized to `[a-z0-9_]` and collapsed underscores).
+  - If both are missing/empty, no IDs can be generated.
+
+- **Generated IDs** (when an ID base exists):
+  - Wrapper `<div id="{id_base}_field">`
+  - Control `<input id="{id_base}_control">` (unless you provided an `id` already)
+  - Label `<label id="{id_base}_label" for="{control_id}">...` (only when `$label` is provided)
+  - Description `<p id="{id_base}_description">...` (only when `$description` is non-empty)
+
+- **ARIA auto-wiring:**
+  - If a label is present and `aria-labelledby` is not already set, the library sets `aria-labelledby="{id_base}_label"`.
+  - If a description is present and `aria-describedby` is not already set, the library sets `aria-describedby="{id_base}_description"`.
+
 Notes:
 - For `checkbox`/`radio`, output order is `input` then `label`.
-- If you want the label to be associated with the control, always provide an `id` attribute (used for the label’s `for`).
+- If you want stable IDs for CSS/JS hooks, pass an explicit `id`. Name-derived IDs are convenient, but they may change if you rename the field.
 
 ## Defaults & `_doing_it_wrong()` warnings (WP_DEBUG)
 
@@ -191,9 +218,10 @@ The library is intentionally “noisy” in debug mode for cases that are easy t
   - **What happens:** triggers `_doing_it_wrong()`.
   - **What to do:** pass `$label`, or if you truly want no visual label use `Control::input()` directly and add appropriate ARIA attributes (`aria-label`, `aria-labelledby`).
 
-- Missing `id`
-  - **What happens:** no warning, but the `<label for="...">` can’t link to the control.
-  - **What to do:** always pass an `id` when using `Field::input()`.
+- Missing `id` (or even missing `name`)
+  - **What happens:** no warning.
+  - **Reality:** `Field::input()` will try to derive IDs from `name` when `id` is missing. If both are missing/empty, it can’t auto-generate IDs, so label/description ARIA linking can’t be auto-wired.
+  - **What to do:** for best accessibility and predictable hooks, always pass an explicit `id` (and `name`).
 
 ### Common cases for `Control::textarea()`
 
@@ -222,7 +250,7 @@ The library is intentionally “noisy” in debug mode for cases that are easy t
 
 #### Recipe: Meta box checkbox with label + description
 
-This pattern avoids common WP_DEBUG warnings (explicit `type`, explicit `value`, proper `id`, label + description):
+This pattern avoids common WP_DEBUG warnings (explicit `type`, explicit `value`, stable `id`, label + description):
 
 ```php
 <?php
@@ -240,6 +268,9 @@ use WP_Post;
 public function render_meta_box( WP_Post $post ): void {
 	// add nonce field for security
 	wp_nonce_field( PostMeta::TS_ETPA_IAC_UPDATE_META, PostMeta::TS_ETPA_IAC_UPDATE_META_NONCE );
+
+	$is_default = (bool) get_post_meta( $post->ID, PostMeta::META_KEY_TICKET_META_FIELDSET_IS_DEFAULT, true );
+
 	// echo checkbox for setting this fieldset as default
 	echo Field::input(
 		[
@@ -248,7 +279,7 @@ public function render_meta_box( WP_Post $post ): void {
 			'id'    => PostMeta::META_KEY_TICKET_META_FIELDSET_IS_DEFAULT . '_field',
 			'value' => '1',
 		],
-		(string) absint( get_post_meta( $post->ID, PostMeta::META_KEY_TICKET_META_FIELDSET_IS_DEFAULT, true ) ),
+		$is_default ? '1' : '',
 		__(
 			'Use as default fieldset for all tickets?',
 			'event-tickets-plus-iac-fields'
@@ -262,7 +293,7 @@ public function render_meta_box( WP_Post $post ): void {
 ```
 
 Notes:
-- For `checkbox`/`radio`, `Control::input()` sets `checked="checked"` when the current value matches the `value` attribute.
+- `Control::input()` considers a checkbox checked when the **current value(s)** contain the control’s `value` attribute. For booleans stored as `1/0`, passing `'1'` when enabled maps cleanly to `'value' => '1'`.
 - If you omit `value` for a checkbox, the submitted value becomes `"on"` (and the library warns about it).
 
 ## Escaping, sanitization, and safety
