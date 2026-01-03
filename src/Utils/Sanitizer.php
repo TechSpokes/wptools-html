@@ -235,6 +235,9 @@ final class Sanitizer {
 		// Remove any attributes that failed to convert (i.e., are null).
 		$attributes = self::remove_null_values_from_array( $attributes );
 
+		// Trim whitespace from all attribute values.
+		$attributes = array_map( 'trim', $attributes );
+
 		// Mark the attributes as sanitized to prevent redundant processing.
 		if ( $add_sanitized ) {
 			$attributes[ self::SANITIZED_KEY ] = true;

@@ -43,14 +43,14 @@ final class Field {
 		$type_base = sanitize_html_class( $type, 'text' );
 
 		// Determine control ID.
-		$control_id = Sanitizer::is_not_string_or_empty( $attributes['id'] ?? null ) ?
-			null :
-			trim( $attributes['id'] );
+		$control_id = Sanitizer::is_string_and_not_empty( $attributes['id'] ?? null ) ?
+			$attributes['id']
+			: null;
 
 		// Generate ID base if needed.
 		$id_base = $control_id;
 		// If no ID provided, generate base from name if possible or fallback to null.
-		if ( null === $id_base ) {
+		if ( Sanitizer::is_not_string_or_empty( $id_base ) ) {
 			// If name is provided, grab the base for IDs generation.
 			$id_base = Sanitizer::is_string_and_not_empty( $attributes['name'] ?? null ) ?
 				// trim underscores from ends
@@ -61,7 +61,7 @@ final class Field {
 						'/_{2,}/',
 						'_',
 						// normalize to underscores for easy copy-paste
-						preg_replace( '/[^a-z0-9_]/i', '_', trim( $attributes['name'] ) )
+						preg_replace( '/[^a-z0-9_]/i', '_', $attributes['name'] )
 					)
 				)
 				: null;
@@ -85,8 +85,7 @@ final class Field {
 			$label_id = $id_base ? sprintf( '%s_label', $id_base ) : null;
 			// Create label element.
 			$label = HTML::label(
-				$label,
-				// null values will be skipped
+				trim( $label ),
 				[
 					'id'    => $label_id,
 					'for'   => $attributes['id'] ?? null,
