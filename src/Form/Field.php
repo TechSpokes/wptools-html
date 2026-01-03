@@ -53,16 +53,15 @@ final class Field {
 		if ( Sanitizer::is_not_string_or_empty( $id_base ) ) {
 			// If name is provided, grab the base for IDs generation.
 			$id_base = Sanitizer::is_string_and_not_empty( $attributes['name'] ?? null ) ?
-				// trim underscores from ends
+				// collapse multiple underscores and trim underscores from ends
 				trim(
-					'_',
-					// collapse multiple underscores
 					preg_replace(
 						'/_{2,}/',
 						'_',
 						// normalize to underscores for easy copy-paste
 						preg_replace( '/[^a-z0-9_]/i', '_', $attributes['name'] )
-					)
+					),
+					'_'
 				)
 				: null;
 		}
